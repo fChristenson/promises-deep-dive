@@ -1,4 +1,4 @@
-# Javascript promises deepdive
+# Javascript promises deep dive
 
 ## What we will cover
 
