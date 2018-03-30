@@ -340,7 +340,7 @@ describe("Promise tests", () => {
     }
   });
 
-  it("is not a good idea to handle error inside a function", async () => {
+  it("is not a good idea to handle errors inside a function", async () => {
     function myFailingFunction() {
       return Promise.reject(1).catch(val => val); // only if we really have to
     }
