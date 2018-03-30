@@ -27,51 +27,70 @@ describe("Promise tests", () => {
     expect(actual).toEqual(expected);
   });
 
-  it("can return a resolved promise in a promise", async () => {
-    const actual = await Promise.resolve().then(() => {
-      return Promise.resolve(1);
-    });
-
-    const expected = 1;
-    expect(actual).toEqual(expected);
+  it("can catch a rejected promise with async/await", async () => {
+    try {
+      await Promise.reject(1);
+      throw new Error("Fail");
+    } catch (val) {
+      const expected = 1;
+      expect(val).toEqual(expected);
+    }
   });
 
-  it("can return a valid promise in a failed promise", async () => {
-    const actual = await Promise.reject().catch(() => {
-      return Promise.resolve(1);
-    });
-
-    const expected = 1;
-    expect(actual).toEqual(expected);
+  it("can return a resolved promise in a promise", done => {
+    Promise.resolve()
+      .then(() => {
+        return Promise.resolve(1);
+      })
+      .then(val => {
+        const expected = 1;
+        expect(val).toEqual(expected);
+      })
+      .then(done);
   });
 
-  it("is not a great thing to make a promise hell", async () => {
-    const val = await Promise.resolve(1).then(a => {
-      return Promise.resolve(1).then(b => {
-        return Promise.resolve(1).then(c => {
-          // we are getting a code belly
-          return a + b + c;
+  it("can return a valid promise in a failed promise", done => {
+    Promise.reject()
+      .catch(() => {
+        return Promise.resolve(1);
+      })
+      .then(val => {
+        const expected = 1;
+        expect(val).toEqual(expected);
+      })
+      .then(done);
+  });
+
+  it("is not a great thing to make a promise hell", done => {
+    Promise.resolve(1)
+      .then(a => {
+        return Promise.resolve(1).then(b => {
+          return Promise.resolve(1).then(c => {
+            // we are getting a code belly
+            return a + b + c;
+          });
         });
-      });
-    });
-
-    const expected = 3;
-    const actual = val;
-    expect(actual).toEqual(expected);
+      })
+      .then(val => {
+        const expected = 3;
+        expect(val).toEqual(expected);
+      })
+      .then(done);
   });
 
-  it("is better if you chain", async () => {
-    const val = await Promise.resolve(1)
+  it("is better if you chain", done => {
+    Promise.resolve(1)
       .then(val => val + 1)
-      .then(val => val + 1);
-
-    const expected = 3;
-    const actual = val;
-    expect(actual).toEqual(expected);
+      .then(val => val + 1)
+      .then(val => {
+        const expected = 3;
+        expect(val).toEqual(expected);
+      })
+      .then(done);
   });
 
-  it("shows that the promise is a pipe of transforms or steps", async () => {
-    const actual = await Promise.resolve(1)
+  it("shows that the promise is a pipe of transforms or steps", done => {
+    Promise.resolve(1)
       .then(val => {
         return { foo: val }; // step 1
       })
@@ -90,13 +109,15 @@ describe("Promise tests", () => {
           count = count + 1;
         }
         return count; // step 7
-      });
-
-    const expected = 3;
-    expect(actual).toEqual(expected);
+      })
+      .then(val => {
+        const expected = 3;
+        expect(val).toEqual(expected);
+      })
+      .then(done);
   });
 
-  it("shows that a promise is very close to what map does", async () => {
+  it("shows that a promise is very close to what map does", () => {
     const actual = [1]
       .map(val => {
         return { foo: val };
@@ -132,41 +153,43 @@ describe("Promise tests", () => {
     expect(promiseThree).toEqual(3);
   });
 
-  it("if you reject a promise it skips to the closest catch", async () => {
-    const promiseOne = Promise.reject(1);
-    const promiseTwo = await promiseOne
+  it("if you reject a promise it skips to the closest catch", done => {
+    Promise.reject(1)
       .then(val => val + 1) // skip
       .then(val => val + 1) // skip
       .then(val => val + 1) // skip
-      .catch(val => val);
-    const promiseThree = await promiseOne.catch(val => val + 2);
-
-    expect(promiseTwo).toEqual(1);
-    expect(promiseThree).toEqual(3);
+      .catch(val => {
+        expect(val).toEqual(1);
+        done();
+      });
   });
 
-  it("if you reject a promise you can recover in the catch", async () => {
+  it("if you reject a promise you can recover in the catch", done => {
     const promiseOne = Promise.reject(1);
-    const promiseTwo = await promiseOne
+    const promiseTwo = promiseOne
       .then(val => val + 1) // skip
       .catch(val => val)
-      .then(val => val + 1); // we keep going
-
-    expect(promiseTwo).toEqual(2);
+      .then(val => val + 1) // we keep going
+      .then(val => {
+        expect(val).toEqual(2);
+      })
+      .then(done);
   });
 
-  it("it can get a bit crazy", async () => {
+  it("it can get a bit crazy", done => {
     const promiseOne = Promise.reject(1);
-    const promiseTwo = await promiseOne
+    promiseOne
       .then(val => val + 1) // skip
       .catch(val => val)
       .then(val => val + 1) // we keep going
       .then(val => Promise.reject(val)) // again!?
-      .catch(val => val);
-
-    // try to avoid multiple catches if you can, it gets crazy after a while
-    // make code simple as often as possible
-    expect(promiseTwo).toEqual(2);
+      .catch(val => val)
+      .then(val => {
+        // try to avoid multiple catches if you can, it gets crazy after a while
+        // make code simple as often as possible
+        expect(val).toEqual(2);
+      })
+      .then(done);
   });
 
   it("Has an old school callback function", done => {
@@ -181,16 +204,19 @@ describe("Promise tests", () => {
     });
   });
 
-  it("Use the promise constructor to make a callback function promise based", async () => {
+  it("Use the promise constructor to make a callback function promise based", done => {
     function waitForIt(time) {
       return new Promise((resolve, reject) => {
         setTimeout(resolve(1), time);
       });
     }
 
-    const val = await waitForIt(0);
-    const expected = 1;
-    expect(val).toEqual(expected);
+    const val = waitForIt(0)
+      .then(val => {
+        const expected = 1;
+        expect(val).toEqual(expected);
+      })
+      .then(done);
   });
 
   it("works with reject as well", async () => {
