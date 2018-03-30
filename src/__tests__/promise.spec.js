@@ -364,7 +364,7 @@ describe("Promise tests", () => {
     const promiseTwo = Promise.resolve(1);
     const promises = [promiseOne, promiseTwo];
     const resolvedPromises = await Promise.all(promises);
-    const [a, b] = resolvedPromises;
+    const [a, b] = resolvedPromises; // perhaps they are different types of data
 
     expect(a).toEqual(1);
     expect(b).toEqual(1);
